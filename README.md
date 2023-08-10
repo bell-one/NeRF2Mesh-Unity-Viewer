@@ -7,15 +7,7 @@ Tested with Unity 2022.3.0f1, windows 11.
 
 ### Installation
 
-Go to the [releases section](https://https://github.com/bell-one/NeRF2Mesh-Unity-Viewer/releases/latest), download the Unity Package, and import it into any Unity project. This is a 'Hybrid Package' that will install into your project as a local package.
-
-##### Alternatives
-
-<details>
-  <summary> UPM Package via Git URL </summary>
-  
-  In `Package Manager -> Add package from git URL...` paste `https://github.com/bell-one/NeRF2Mesh-Unity-Viewer.git` [as described here](https://docs.unity3d.com/Manual/upm-ui-giturl)
-</details>
+In `Package Manager -> Add package from git URL...` paste `https://github.com/bell-one/NeRF2Mesh-Unity-Viewer.git` [as described here](https://docs.unity3d.com/Manual/upm-ui-giturl)
 
 
 ## Sample Scene
