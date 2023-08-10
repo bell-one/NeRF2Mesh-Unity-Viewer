@@ -17,7 +17,6 @@ After installation, you can use the menu `NeRF2Mesh -> Import from disk` to impo
 
 ## To-do
 
-- Textures are sometimes not automatically loaded into materials
 - Test with other scenes
 
 

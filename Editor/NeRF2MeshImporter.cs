@@ -239,8 +239,8 @@ public class NeRF2MeshImporter {
         string feat1AssetPath = GetFeatureTextureAssetPath(objName, 1);
         Texture2D featureTex1 = AssetDatabase.LoadAssetAtPath<Texture2D>(feat0AssetPath);
         Texture2D featureTex2 = AssetDatabase.LoadAssetAtPath<Texture2D>(feat1AssetPath);
-        material.SetTexture("tDiffuse", featureTex1);
-        material.SetTexture("tSpecular", featureTex2);
+        material.SetTexture("_MainTex", featureTex1);
+        material.SetTexture("_SpecularTex", featureTex2);
 
         // assign material to renderer
         GameObject obj = AssetDatabase.LoadAssetAtPath<GameObject>(objAssetPath);
