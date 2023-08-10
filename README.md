@@ -17,7 +17,7 @@ After installation, you can use the menu `NeRF2Mesh -> Import from disk` to impo
 
 ## To-do
 
-- Test with other scenes
+- Test with other scenes, check for specular MLP calculations
 
 
 ## Acknowledgements

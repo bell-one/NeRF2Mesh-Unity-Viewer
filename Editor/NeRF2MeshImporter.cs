@@ -251,7 +251,6 @@ public class NeRF2MeshImporter {
     /// Create shader and material for the specific object
     /// </summary>
     private static void CreateShader(string objName, Mlp mlp) {
-        //int width = mlp._0Bias.Length;
 
         string shaderSource = ViewDependenceNetworkShader.Template;
         shaderSource = new Regex("OBJECT_NAME"       ).Replace(shaderSource, $"{objName}");
@@ -269,10 +268,6 @@ public class NeRF2MeshImporter {
         shaderSource = new Regex($"NUM_CHANNELS_ZERO").Replace(shaderSource, $"{mlp._0Weights.Length}");
         shaderSource = new Regex($"NUM_CHANNELS_ONE").Replace(shaderSource, $"{mlp._1Weights.Length}");
         shaderSource = new Regex($"NUM_CHANNELS_TWO").Replace(shaderSource, $"{mlp._1Weights[0].Length}");
-
-        // hack way to flip axes depending on scene
-        //string axisSwizzle = MNeRFSceneExtensions.ToEnum(objName).GetAxisSwizzleString();
-        //shaderSource = new Regex("AXIS_SWIZZLE"      ).Replace(shaderSource, $"{axisSwizzle}");
 
         string shaderAssetPath = GetShaderAssetPath(objName);
         File.WriteAllText(shaderAssetPath, shaderSource);

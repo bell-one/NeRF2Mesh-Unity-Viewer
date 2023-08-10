@@ -3,7 +3,7 @@ public static class ViewDependenceNetworkShader {
     Properties {
         _MainTex (""Diffuse Texture"", 2D) = ""white"" {}
         _SpecularTex(""Specular Texture"", 2D) = ""white"" {}
-        _Mode(""Mode"", Range(1, 3)) = 3
+        _Mode(""Mode"", Range(1, 3)) = 1
     }
 
     CGINCLUDE
@@ -110,18 +110,11 @@ public static class ViewDependenceNetworkShader {
         // NUM_CHANNELS_TWO (output_dim) is hard-coded as 3
     
         float4 v;
-        float4x4 w;
-                
-        //int NUM_CHANNELS_ZERO = 6;
-        //int NUM_CHANNELS_ONE = 32;
-        //int NUM_CHANNELS_TWO = 3;
-
-
-        // first layer: 6 --> NUM_CHANNELS_ONE
+        float4x4 w;                
 
         float4 result_one[8];
         for (int i = 0; i < 8; i++) {
-            result_one[i] = (0.0, 0.0, 0.0, 0.0);
+            result_one[i] = float4(0.0, 0.0, 0.0, 0.0);
         }
 
         v = float4(
@@ -131,9 +124,9 @@ public static class ViewDependenceNetworkShader {
             inputFetch(f0, viewdir, 3)
         );
 
-        for (int i = 0; i < NUM_CHANNELS_ONE; i += 4) {
-            w = weights_zero[i/4];
-            result_one[i / 4] += mul(w, v);
+        for (int i = 0; i < NUM_CHANNELS_ONE / 4; i += 1) {
+            w = weights_zero[i];
+            result_one[i] += mul(w, v);
         }
 
         v = float4(
@@ -143,15 +136,15 @@ public static class ViewDependenceNetworkShader {
             0.0
         );
 
-        for (int i = 0; i < NUM_CHANNELS_ONE; i += 4) {
-            w = weights_zero[i/4];
-            result_one[i / 4] +=mul(v, w);
+        for (int i = 0; i < NUM_CHANNELS_ONE / 4; i += 1) {
+            w = weights_zero[i];
+            result_one[i] +=mul(v, w);
         }
 
         // second layer: NUM_CHANNELS_ONE --> 3
 
         float3 result;
-        result = (0, 0, 0);
+        result = float3(0, 0, 0);
 
         for (int i = 0; i < NUM_CHANNELS_ONE / 4; i++) {
             v = max(result_one[i], 0.0); // relu
