@@ -1,5 +1,7 @@
 # NeRF2Mesh-Unity-Viewer
 
+*** on working project ***
+
 This repository contains the source code for a Unity port of the web viewer from the paper [NeRF2Mesh: Delicate textured mesh recovery from nerf via adaptive surface refinement](https://github.com/ashawkey/nerf2mesh/)[^1]
 
 ## Usage
