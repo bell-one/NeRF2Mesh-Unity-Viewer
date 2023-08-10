@@ -47,8 +47,16 @@ public class NeRF2MeshImporter {
         return path;
     }
 
-    private static string GetFeatureTextureAssetPath(string objName, int i) {
+    private static string GetFeatureTextureAssetPath(string objName, int i)
+    {
         string path = $"{GetBasePath(objName)}/JPGs/feat{i}.jpg";
+        Directory.CreateDirectory(Path.GetDirectoryName(path));
+        return path;
+    }
+
+    private static string GetMLPTextureAssetPath(string objName, int i)
+    {
+        string path = $"{GetBasePath(objName)}/MLP/feat{i}.jpg";
         Directory.CreateDirectory(Path.GetDirectoryName(path));
         return path;
     }
@@ -80,6 +88,57 @@ public class NeRF2MeshImporter {
         Directory.CreateDirectory(Path.GetDirectoryName(path));
         return path;
     }
+
+    public static void CreateNetworkWeightTexture(string objName, double[][] networkWeights, int id)
+    {
+        int width = networkWeights.Length;      // 32
+        int height = networkWeights[0].Length;  // 3
+
+        float[] weightsData = new float[width * height];
+        for (int co = 0; co < height; co++)
+        {
+            for (int ci = 0; ci < width; ci++)
+            {
+                int index = co * width + ci; // column-major
+                double weight = networkWeights[ci][co];
+                weightsData[index] = (float)weight;
+            }
+        }
+
+        int widthPad = width + (4 - width % 4); // make divisible by 4
+        float[] weightsDataPad = new float[widthPad * height];
+        for (int j = 0; j < widthPad; j += 4)
+        {
+            for (int i = 0; i < height; i++)
+            {
+                for (int c = 0; c < 4; c++)
+                {
+                    if (c + j >= width)
+                    {
+                        weightsDataPad[j * height + i * 4 + c] = 0.0f; // zero padding
+                    }
+                    else
+                    {
+                        weightsDataPad[j * height + i * 4 + c] = weightsData[j + i * width + c];
+                    }
+                }
+            }
+        }
+
+        Texture2D texture = new Texture2D(1, widthPad * height / 4, TextureFormat.RFloat, false);
+        texture.filterMode = FilterMode.Bilinear;
+        texture.wrapMode = TextureWrapMode.Clamp;
+        Unity.Collections.NativeArray<float> nativeArray = new Unity.Collections.NativeArray<float>(weightsDataPad, Unity.Collections.Allocator.Persistent);
+
+        texture.LoadRawTextureData<float>(nativeArray);
+        texture.Apply();
+
+        byte[] textureBytes = texture.EncodeToPNG();
+        string path = GetMLPTextureAssetPath(objName, id);
+        File.WriteAllBytes(path, textureBytes);
+        AssetDatabase.Refresh();
+
+    }
     private static string GetPrefabAssetPath(string objName) {
         string path = $"{GetBasePath(objName)}/{objName}.prefab";
         Directory.CreateDirectory(Path.GetDirectoryName(path));
@@ -93,6 +152,10 @@ public class NeRF2MeshImporter {
         string objName = new DirectoryInfo(path).Name;
 
         Mlp mlp = CopyMLPFromPath(path);
+
+        CreateNetworkWeightTexture(objName, mlp._0Weights, 0);
+        CreateNetworkWeightTexture(objName, mlp._1Weights, 1);
+
         if (mlp == null) {
             return;
         }
@@ -108,7 +171,11 @@ public class NeRF2MeshImporter {
 
         ProcessAssets(objName);
     }
+
+
+
    
+
 
     /// <summary>
     /// Set specific import settings on OBJs/PNGs.
@@ -241,6 +308,14 @@ public class NeRF2MeshImporter {
         Texture2D featureTex2 = AssetDatabase.LoadAssetAtPath<Texture2D>(feat1AssetPath);
         material.SetTexture("_MainTex", featureTex1);
         material.SetTexture("_SpecularTex", featureTex2);
+
+        // assign mlp textures
+        string mlpFeat0AssetPath = GetMLPTextureAssetPath(objName, 0);
+        string mlpFeat1AssetPath = GetMLPTextureAssetPath(objName, 1);
+        Texture2D mlpFeatureTex1 = AssetDatabase.LoadAssetAtPath<Texture2D>(mlpFeat0AssetPath);
+        Texture2D mlpFeatureTex2 = AssetDatabase.LoadAssetAtPath<Texture2D>(mlpFeat1AssetPath);
+        material.SetTexture("_MLP0", mlpFeatureTex1);
+        material.SetTexture("_MLP1", mlpFeatureTex2);
 
         // assign material to renderer
         GameObject obj = AssetDatabase.LoadAssetAtPath<GameObject>(objAssetPath);
