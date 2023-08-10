@@ -1,0 +1,16 @@
+{
+   "name": "com.bellone.nerf2mesh",
+   "version": "1.1.0",
+   "displayName": "NeRF2Mesh",
+   "description": "An unofficial Unity port of the NeRF2Mesh viewer.",
+   "dependencies":
+   {
+      "com.unity.nuget.newtonsoft-json": "3.0.2"
+   },
+   "author":
+   {
+      "name": "Bellone",
+      "email": "cengudr@gmail.com",
+      "url": "https://github.com/bell-one"
+   }
+}
