@@ -124,13 +124,23 @@ public class NeRF2MeshImporter {
                 }
             }
         }
+        Texture2D texture = new Texture2D(1, widthPad * height / 4, TextureFormat.RGBAFloat, false);
+        Color[] colors = new Color[weightsDataPad.Length / 4];
 
-        Texture2D texture = new Texture2D(1, widthPad * height / 4, TextureFormat.RFloat, false);
-        texture.filterMode = FilterMode.Bilinear;
+        for (int i = 0; i < weightsDataPad.Length; i += 4)
+        {
+            Color color = new Color(
+                weightsDataPad[i],
+                weightsDataPad[i + 1],
+                weightsDataPad[i + 2],
+                weightsDataPad[i + 3]
+            );
+            colors[i / 4] = color;
+        }
+
+        texture.SetPixels(colors);
         texture.wrapMode = TextureWrapMode.Clamp;
-        Unity.Collections.NativeArray<float> nativeArray = new Unity.Collections.NativeArray<float>(weightsDataPad, Unity.Collections.Allocator.Persistent);
-
-        texture.LoadRawTextureData<float>(nativeArray);
+        texture.filterMode = FilterMode.Bilinear; // You can set this to FilterMode.Point if needed
         texture.Apply();
 
         byte[] textureBytes = texture.EncodeToPNG();
@@ -153,8 +163,8 @@ public class NeRF2MeshImporter {
 
         Mlp mlp = CopyMLPFromPath(path);
 
-        CreateNetworkWeightTexture(objName, mlp._0Weights, 0);
-        CreateNetworkWeightTexture(objName, mlp._1Weights, 1);
+        //CreateNetworkWeightTexture(objName, mlp._0Weights, 0);
+        //CreateNetworkWeightTexture(objName, mlp._1Weights, 1);
 
         if (mlp == null) {
             return;
@@ -309,14 +319,6 @@ public class NeRF2MeshImporter {
         material.SetTexture("_MainTex", featureTex1);
         material.SetTexture("_SpecularTex", featureTex2);
 
-        // assign mlp textures
-        string mlpFeat0AssetPath = GetMLPTextureAssetPath(objName, 0);
-        string mlpFeat1AssetPath = GetMLPTextureAssetPath(objName, 1);
-        Texture2D mlpFeatureTex1 = AssetDatabase.LoadAssetAtPath<Texture2D>(mlpFeat0AssetPath);
-        Texture2D mlpFeatureTex2 = AssetDatabase.LoadAssetAtPath<Texture2D>(mlpFeat1AssetPath);
-        material.SetTexture("_MLP0", mlpFeatureTex1);
-        material.SetTexture("_MLP1", mlpFeatureTex2);
-
         // assign material to renderer
         GameObject obj = AssetDatabase.LoadAssetAtPath<GameObject>(objAssetPath);
         obj.GetComponentInChildren<MeshRenderer>().sharedMaterial = material;
@@ -331,13 +333,12 @@ public class NeRF2MeshImporter {
         shaderSource = new Regex("OBJECT_NAME"       ).Replace(shaderSource, $"{objName}");
 
 
-        for (int i = 0; i < mlp._0Weights.Length; i++) {
-            StringBuilder first = toConstructorListFirst(mlp._0Weights[i]);
-            StringBuilder last = toConstructorListLast(mlp._0Weights[i]);
-            shaderSource = new Regex($"__W0_{i}__0").Replace(shaderSource, $"{first}");
-            shaderSource = new Regex($"__W0_{i}__1").Replace(shaderSource, $"{last}");
+        for (int i = 0; i < mlp._0Weights.Length; i++) {   /// [6][32]
+
+            shaderSource = new Regex($"__W0_{i}__").Replace(shaderSource, $"{toConstructorList(mlp._0Weights[i])}");
+
         }
-        for (int i = 0; i < mlp._1Weights.Length; i++) {
+        for (int i = 0; i < mlp._1Weights.Length; i++) { /// [32][3]
             shaderSource = new Regex($"__W1_{i}__").Replace(shaderSource, $"{toConstructorList(mlp._1Weights[i])}");
         }
         shaderSource = new Regex($"NUM_CHANNELS_ZERO").Replace(shaderSource, $"{mlp._0Weights.Length}");
@@ -367,41 +368,6 @@ public class NeRF2MeshImporter {
     }
 
 
-    private static StringBuilder toConstructorListFirst(double[] list)
-    {
-        System.Globalization.CultureInfo culture = System.Globalization.CultureInfo.InvariantCulture;
-        int width = list.Length;
-        StringBuilder biasList = new StringBuilder(width * 12);
-        for (int i = 0; i < width /2 ; i++)
-        {
-            double bias = list[i];
-            biasList.Append(bias.ToString("F7", culture));
-            if (i + 1 < width / 2)
-            {
-                biasList.Append(", ");
-            }
-        }
-        return biasList;
-    }
-
-
-    private static StringBuilder toConstructorListLast(double[] list)
-    {
-        System.Globalization.CultureInfo culture = System.Globalization.CultureInfo.InvariantCulture;
-        int width = list.Length;
-        StringBuilder biasList = new StringBuilder(width * 12);
-        for (int i = width / 2; i < width; i++)
-        {
-            double bias = list[i];
-            biasList.Append(bias.ToString("F7", culture));
-            if (i + 1 < width)
-            {
-                biasList.Append(", ");
-            }
-        }
-        return biasList;
-    }
-
     private static void CreatePrefab(string objName, Mlp mlp) {
         bool splitShapes = AreOBJsSplit(GetObjBaseAssetPath(objName));
         int numSplitShapes = GetNumSplitShapes(splitShapes);
@@ -415,6 +381,4 @@ public class NeRF2MeshImporter {
         PrefabUtility.SaveAsPrefabAsset(prefabObject, GetPrefabAssetPath(objName));
         GameObject.DestroyImmediate(prefabObject);
     }
-
-
 }

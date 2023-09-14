@@ -3,8 +3,6 @@ public static class ViewDependenceNetworkShader {
     Properties {
         _MainTex (""Diffuse Texture"", 2D) = ""white"" {}
         _SpecularTex(""Specular Texture"", 2D) = ""white"" {}
-        _MLP0 (""MLP0 Texture"", 2D) = ""white"" {}
-        _MLP1(""MLP1 Texture"", 2D) = ""white"" {}
         _Mode(""Mode"", Range(1, 3)) = 1
     }
 
@@ -37,8 +35,6 @@ public static class ViewDependenceNetworkShader {
 
     sampler2D _MainTex;
     sampler2D _SpecularTex;
-    sampler2D _MLP0;
-    sampler2D _MLP1;
 
     float inputFetch(float4 f0, float3 viewdir, int j) {
         float input_value = 0.0;
@@ -51,8 +47,6 @@ public static class ViewDependenceNetworkShader {
 
         return input_value;
     }
-
-
     float3 evaluateNetwork(float4 f0, float3 viewdir) {
         
         // NUM_CHANNELS_ZERO (input_dim) is hard-coded as 6
@@ -63,7 +57,7 @@ public static class ViewDependenceNetworkShader {
         float4x4 w;                
 
         float4 result_one[NUM_CHANNELS_ONE / 4];
-        for (int i = 0; i < NUM_CHANNELS_ONE / 4; i++) {
+        for (int i = 0; i < NUM_CHANNELS_ONE / 4; i++) {   //32
             result_one[i] = float4(0.0, 0.0, 0.0, 0.0);
         }
 
@@ -74,14 +68,34 @@ public static class ViewDependenceNetworkShader {
             inputFetch(f0, viewdir, 3)
         );
 
-        for (int i = 0; i < NUM_CHANNELS_ONE ; i += 4) {
+        float w0[NUM_CHANNELS_ZERO * NUM_CHANNELS_ONE] = {__W0_0__, __W0_1__, __W0_2__, __W0_3__, __W0_4__, __W0_5__};
+    
+        int width = NUM_CHANNELS_ZERO;
+        int height = NUM_CHANNELS_ONE;
+        int width_pad = NUM_CHANNELS_ZERO + (4 - NUM_CHANNELS_ZERO%4);
+        float wd_pad[(NUM_CHANNELS_ZERO + (4 - NUM_CHANNELS_ZERO%4)) * NUM_CHANNELS_ONE];
+        for(int j = 0; j < width_pad; j+=4){
+            for(int i = 0; i < height; i++){
+                for(int c = 0; c < 4; c++){
+                    if(c + j >= width){ 
+                        wd_pad[j * height + i * 4 + c] = 0.0; // zero padding
+                    } else {
+                        wd_pad[j * height + i * 4 + c] = w0[j + i * width + c];
+                    }
+                }
+            }
+        }
+
+
+        
+        for (int i = 0; i < NUM_CHANNELS_ONE ; i += 4) {   //32
             w = float4x4(
-                tex2D(_MLP0, int2(0, i)),
-                tex2D(_MLP0, int2(0, i+1)),
-                tex2D(_MLP0, int2(0, i+2)),
-                tex2D(_MLP0, int2(0, i+3))
+                wd_pad[i*4 + 0], wd_pad[i*4 + 1], wd_pad[i*4 + 2], wd_pad[i*4 + 3],
+                wd_pad[i*4 + 4], wd_pad[i*4 + 5], wd_pad[i*4 + 6], wd_pad[i*4 + 7],
+                wd_pad[i*4 + 8], wd_pad[i*4 + 9], wd_pad[i*4 + 10], wd_pad[i*4 + 11],
+                wd_pad[i*4 + 12], wd_pad[i*4 + 13], wd_pad[i*4 + 14], wd_pad[i*4 + 15]
             );
-            result_one[i / 4] += mul(w, v);
+            result_one[i / 4] += mul(v, w);
         }
 
         v = float4(
@@ -91,28 +105,33 @@ public static class ViewDependenceNetworkShader {
             0.0
         );
 
-        for (int i = 0; i < NUM_CHANNELS_ONE ; i += 4) {
+        for (int i = 0; i < NUM_CHANNELS_ONE ; i += 4) {   //32
             w = float4x4(
-                tex2D(_MLP0, int2(0, NUM_CHANNELS_ONE + i)),
-                tex2D(_MLP0, int2(0, NUM_CHANNELS_ONE + i+1)),
-                tex2D(_MLP0, int2(0, NUM_CHANNELS_ONE + i+2)),
-                tex2D(_MLP0, int2(0, NUM_CHANNELS_ONE + i+3))
-
+                wd_pad[i*4 + 0 + NUM_CHANNELS_ONE], wd_pad[i*4 + 1 + NUM_CHANNELS_ONE], wd_pad[i*4 + 2 + NUM_CHANNELS_ONE], wd_pad[i*4 + 3 + NUM_CHANNELS_ONE],
+                wd_pad[i*4 + 4 + NUM_CHANNELS_ONE], wd_pad[i*4 + 5 + NUM_CHANNELS_ONE], wd_pad[i*4 + 6 + NUM_CHANNELS_ONE], wd_pad[i*4 + 7 + NUM_CHANNELS_ONE],
+                wd_pad[i*4 + 8 + NUM_CHANNELS_ONE], wd_pad[i*4 + 9 + NUM_CHANNELS_ONE], wd_pad[i*4 + 10+ NUM_CHANNELS_ONE], wd_pad[i*4 + 11+ NUM_CHANNELS_ONE],
+                wd_pad[i*4 + 12+ NUM_CHANNELS_ONE], wd_pad[i*4 + 13+ NUM_CHANNELS_ONE], wd_pad[i*4 + 14+ NUM_CHANNELS_ONE], wd_pad[i*4 + 15+ NUM_CHANNELS_ONE]
             );
             result_one[i / 4] +=mul(v, w);
         }
 
-        // second layer: NUM_CHANNELS_ONE --> 3
+        // second layer: NUM_CHANNELS_ONE --> 32
+        
+          float w1[NUM_CHANNELS_ONE * NUM_CHANNELS_TWO] = {__W1_0__, __W1_1__, __W1_2__, __W1_3__,
+                __W1_4__, __W1_5__, __W1_6__, __W1_7__,  __W1_8__, __W1_9__, __W1_10__, __W1_11__,
+                __W1_12__, __W1_13__, __W1_14__, __W1_15__,  __W1_16__, __W1_17__, __W1_18__, __W1_19__,
+                __W1_20__, __W1_21__, __W1_22__, __W1_23__,  __W1_24__, __W1_25__, __W1_26__, __W1_27__,
+                __W1_28__, __W1_29__, __W1_30__, __W1_31__};
 
         float3 result;
         result = float3(0, 0, 0);
 
-        for (int i = 0; i < NUM_CHANNELS_ONE / 4; i++) {
+        for (int i = 0; i < NUM_CHANNELS_ONE / 4; i++) {  // 32  8 * 3 
             v = max(result_one[i], 0.0); // relu
             w = float4x4(
-                tex2D(_MLP1, int2(0, i*3)),
-                tex2D(_MLP1, int2(0, i*3+1)),
-                tex2D(_MLP1, int2(0, i*3+2)),
+                w1[i*9+0], w1[i*9+1], w1[i*9+2], 0,
+                w1[i*9+3], w1[i*9+4], w1[i*9+5], 0,
+                w1[i*9+6], w1[i*9+7], w1[i*9+8], 0,
                 float4(0, 0, 0, 0) // padding
             );
             result += mul(v, w).xyz;
@@ -123,6 +142,7 @@ public static class ViewDependenceNetworkShader {
 
     }
     ENDCG
+
 
     SubShader
     {
